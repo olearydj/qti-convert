@@ -14,8 +14,9 @@ import config
 def write_file(data, outfile):
     """
     markdown output, handles only standard multiple choice questions now
-    image support is untested
+    image support is not working - see `q11_sql.xml` and related 
     complex question text (e.g. multi-line with code blocks) is not handled
+    need to test of provided case `imsmanifest.xml`
     """
     markdown_list = []
     text_maker = html2text.HTML2Text()
@@ -87,14 +88,25 @@ def write_file(data, outfile):
                     markdown_list.append(handled_text)
 
                     # find correct answer
-                    for answer in question['answer']:
-                        if 'correct' in answer and answer['correct']:
+                    if 'answer' in question and question['answer'] is not None:
+                        # Create a list containing all answers from 'question['answer']' where the key 'correct' is present and its value is True.
+                        correct_answers = [answer for answer in question['answer'] if 'correct' in answer and answer['correct']]
+
+                        if correct_answers:
+                            if len(correct_answers) > 1:
+                                logger.warning(f"Multiple correct answers found in question {q_num+1}, using first") 
+                        
+                            answer = correct_answers[0]
+                            correct_answer_id = answer['id']
                             logger.debug(f"contents of correct field: {repr(answer['correct'])}")
                             logger.debug(f"type of correct field: {type(answer['correct'])}")
-                            correct_answer_id = answer['id']
                             logger.info(f"Correct answer ({correct_answer_id}): {answer['text']}")
+
                         else:
                             logger.warning(f"No correct answer found in question {q_num+1}")
+
+                    else:
+                        logger.warning(f"No answers found for question {q_num+1}")
 
                 else:
                     logger.debug(f"No text in question {q_num+1}")
