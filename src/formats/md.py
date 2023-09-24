@@ -87,31 +87,29 @@ def write_file(data, outfile):
                     logger.info(f"Adding text to question {q_num+1}: {repr(handled_text)}")
                     markdown_list.append(handled_text)
 
-                    # find correct answer
-                    if 'answer' in question and question['answer'] is not None:
-                        # Create a list containing all answers from 'question['answer']' where the key 'correct' is present and its value is True.
-                        correct_answers = [answer for answer in question['answer'] if 'correct' in answer and answer['correct']]
-
-                        if correct_answers:
-                            if len(correct_answers) > 1:
-                                logger.warning(f"Multiple correct answers found in question {q_num+1}, using first") 
-                        
-                            answer = correct_answers[0]
-                            correct_answer_id = answer['id']
-                            logger.debug(f"contents of correct field: {repr(answer['correct'])}")
-                            logger.debug(f"type of correct field: {type(answer['correct'])}")
-                            logger.info(f"Correct answer ({correct_answer_id}): {answer['text']}")
-
-                        else:
-                            logger.warning(f"No correct answer found in question {q_num+1}")
-
-                    else:
-                        logger.warning(f"No answers found for question {q_num+1}")
-
                 else:
                     logger.debug(f"No text in question {q_num+1}")
                 
-                if 'answer' in question:
+                # Add any answers found
+                if 'answer' in question and question['answer'] is not None:
+
+                    # first identify correct answer and handle if multiple or none
+                    # Create a list containing all answers from 'question['answer']' where the key 'correct' is present and its value is True.
+                    correct_answers = [answer for answer in question['answer'] if 'correct' in answer and answer['correct']]
+
+                    if correct_answers:
+                        if len(correct_answers) > 1:
+                            logger.warning(f"Multiple correct answers found in question {q_num+1}, using first") 
+                    
+                        answer = correct_answers[0]
+                        correct_answer_id = answer['id']
+                        logger.debug(f"contents of correct field: {repr(answer['correct'])}")
+                        logger.debug(f"type of correct field: {type(answer['correct'])}")
+                        logger.info(f"Correct answer ({correct_answer_id}): {answer['text']}")
+
+                    else:
+                        logger.warning(f"No correct answer found in question {q_num+1}")
+
                     """
                     implement `matching_question` next, other types aren't used
                     will need to make sure formatting here matches what is required by text2qti
@@ -150,6 +148,9 @@ def write_file(data, outfile):
                         
                         else:
                             markdown_list.append(config.blanks_replace_str * config.blanks_answer_n)
+
+                else:
+                    logger.warning(f"No answers found for question {q_num+1}")
 
     # Writing the Generated Markdown to a File
     with open(outfile, 'w') as md_file:
