@@ -77,7 +77,7 @@ def main(args):
             if args.output:
                 outfile = args.output
             else:
-                outfile = "output.docx"
+                outfile = input_path.stem + ".docx"
             logger.info("Writing DOCX to '" + outfile + "'...")
             formats.docx.write_file(qti_resource, outfile)
 
@@ -85,7 +85,7 @@ def main(args):
             if args.output:
                 outfile = args.output
             else:
-                outfile = "output.md"
+                outfile = input_path.stem + ".md"
             logger.info("Writing Markdown to '" + outfile + "'...")
             formats.md.write_file(qti_resource, outfile)
 
@@ -104,10 +104,10 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert QTI files into other formats.", add_help=False)
-    parser.add_argument("input", help="QTI input file (imsmanifest.xml).")
+    parser.add_argument("input", help="QTI input file (e.g., 'imsmanifest.xml').")
     parser.add_argument("-v", action="count", default=0, help="Verbosity (-v, -vv, etc).")
     parser.add_argument("-f", action="store", dest="format", default="json", help="Output format, defaults to JSON.")
-    parser.add_argument("-o", action="store", dest="output", help="Output file.")
+    parser.add_argument("-o", action="store", dest="output", help="Output file, defaults to 'input_name' + extension ('docx' or 'md'), unless JSON, which outputs to STDOUT by default.")
     parser.add_argument( "--version", action="version", help="Display version and exit.", version="%(prog)s (version {version})".format(version=__version__))
     parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS, help='Show this help message and exit.')
     args = parser.parse_args()
