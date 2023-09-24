@@ -4,16 +4,19 @@ Markdown format
 
 import re
 import string
-import json
 
 import html2text
 from logzero import logger
-from rich import print as rprint
 
 import config
 
 
 def write_file(data, outfile):
+    """
+    markdown output, handles only standard multiple choice questions now
+    image support is untested
+    complex question text (e.g. multi-line with code blocks) is not handled
+    """
     markdown_list = []
     text_maker = html2text.HTML2Text()
 
@@ -55,35 +58,52 @@ def write_file(data, outfile):
         # ]
 
         for q_num, question in enumerate(assessment['question']):
-            # Adding Question Title
-            if 'title' in question:
-                question_title = f"\n## {question['title']} {q_num+1}\n\n" 
-                logger.info(f"Writing question titled: {repr(question_title)}")
-                markdown_list.append(question_title)
+    
+            if question['question_type'] in ["multiple_dropdowns_question", "matching_question", "calculated_question"]:
+                logger.warning(f"Question type {question['question_type']} not yet supported")
+
             else:
-                logger.debug(f"No title in question {q_num+1}")
-                
-            # Adding Images
-            if 'image' in question:
-                logger.info(f"Adding images to question {q_num+1}")
-                for img in question['image']:
-                    markdown_list.append(f"![Image]({img['href'].replace('%20', ' ')})")
-            else:
-                logger.debug(f"No images in question {q_num+1}")
-                             
-            # Adding Text
-            if 'text' in question and question['text'] is not None:
-                this_question_text = re.sub('</*tbody>', '', question['text'])  # See https://github.com/pqzx/html2docx/issues/1
-                handled_text = text_maker.handle(this_question_text).strip() + "\n\n"
-                logger.info(f"Adding text to question {q_num+1}: {repr(handled_text)}")
-                markdown_list.append(handled_text)
-            else:
-                logger.debug(f"No text in question {q_num+1}")
-            
-            if 'answer' in question:
-                if question['question_type'] in ["multiple_dropdowns_question", "matching_question", "calculated_question"]:
-                    logger.warning(f"Question type {question['question_type']} not yet supported")
+                # Adding Question Title
+                if 'title' in question:
+                    question_title = f"\n## {question['title']} {q_num+1}\n\n" 
+                    logger.info(f"Writing question titled: {repr(question_title)}")
+                    markdown_list.append(question_title)
                 else:
+                    logger.debug(f"No title in question {q_num+1}")
+                    
+                # Adding Images
+                if 'image' in question:
+                    logger.info(f"Adding images to question {q_num+1}")
+                    for img in question['image']:
+                        markdown_list.append(f"![Image]({img['href'].replace('%20', ' ')})")
+                else:
+                    logger.debug(f"No images in question {q_num+1}")
+                                
+                # Adding Question Text
+                if 'text' in question and question['text'] is not None:
+                    this_question_text = re.sub('</*tbody>', '', question['text'])  # See https://github.com/pqzx/html2docx/issues/1
+                    handled_text = text_maker.handle(this_question_text).strip() + "\n\n"
+                    logger.info(f"Adding text to question {q_num+1}: {repr(handled_text)}")
+                    markdown_list.append(handled_text)
+
+                    # find correct answer
+                    for answer in question['answer']:
+                        if 'correct' in answer and answer['correct']:
+                            logger.debug(f"contents of correct field: {repr(answer['correct'])}")
+                            logger.debug(f"type of correct field: {type(answer['correct'])}")
+                            correct_answer_id = answer['id']
+                            logger.info(f"Correct answer ({correct_answer_id}): {answer['text']}")
+                        else:
+                            logger.warning(f"No correct answer found in question {q_num+1}")
+
+                else:
+                    logger.debug(f"No text in question {q_num+1}")
+                
+                if 'answer' in question:
+                    """
+                    implement `matching_question` next, other types aren't used
+                    will need to make sure formatting here matches what is required by text2qti
+                    """
                     logger.info(f"Adding answers to question {q_num+1}, type: {question['question_type']}")
                     for index, answer in enumerate(question['answer']):
                         if answer['display']:
@@ -96,7 +116,7 @@ def write_file(data, outfile):
                             else:
                                 logger.debug(f"No images in answer {index+1}")
                             
-                            # For displaying the index and text in Markdown
+                            # Add answer index and text
                             if 'text' in answer and answer['text'] is not None:
                                 alphabet_index = string.ascii_lowercase[index]
                                 text = answer['text']
@@ -107,15 +127,17 @@ def write_file(data, outfile):
 
                                 code_block_pattern = r'`([\s\S]*?)`'
                                 cleaned_text = re.sub(code_block_pattern, lambda m: '`' + m.group(1).strip() + '`', handled_text) + "  \n"
+                                
+                                # flag correct answer choice
+                                if answer['id'] == correct_answer_id:
+                                    alphabet_index = "*" + alphabet_index
                                 logger.info(f"Cleaned text added: {alphabet_index}: {repr(cleaned_text)}")
-                                markdown_list.append(f"{alphabet_index}. {cleaned_text}")
+                                markdown_list.append(f"{alphabet_index}) {cleaned_text}")
                             else:
                                 logger.warning(f"No text in answer {alphabet_index}")
                         
                         else:
                             markdown_list.append(config.blanks_replace_str * config.blanks_answer_n)
-
-    # rprint(markdown_list)      
 
     # Writing the Generated Markdown to a File
     with open(outfile, 'w') as md_file:
@@ -124,6 +146,8 @@ def write_file(data, outfile):
     print("wrote markdown")
 
     return
+
+    # based on code from docx.py; the following bits are not yet converted
     for assessment in data['assessment']:
         doc.add_heading(assessment['metadata']['title'], 0)
         for question in assessment['question']:
@@ -164,5 +188,3 @@ def write_file(data, outfile):
                                 html_parser.add_html_to_document("<p>" + str(index+1) + ". " + answer['text'] + ": " + config.blanks_replace_str * 20 + "</p>", doc)
 
             doc.add_page_break()
-
-    doc.save(outfile)
