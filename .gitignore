@@ -1,6 +1,10 @@
 # Local directories
 tests/
 
+# DJO stuff
+3010_quizzes/
+.vscode/
+
 # Mac shit
 .DS_Store
 
