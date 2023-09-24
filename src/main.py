@@ -9,6 +9,7 @@ import json
 import re
 from pathlib import Path
 
+import logzero
 from logzero import logger
 from lxml import etree
 
@@ -21,6 +22,13 @@ __description__ = config.__description__
 __license__ = config.__license__
 __version__ = config.__version__
 
+log_file = Path("qti_convert.log")
+if log_file.exists():
+    log_file.unlink()
+
+logzero.logfile(log_file, maxBytes=1e6, backupCount=3, disableStderrLogger=True)
+logzero.loglevel(logzero.INFO)
+logger.info("Logging to file: " + str(log_file))
 
 def main(args):
     logger.info(__description__)
@@ -72,6 +80,14 @@ def main(args):
                 outfile = "output.docx"
             logger.info("Writing DOCX to '" + outfile + "'...")
             formats.docx.write_file(qti_resource, outfile)
+
+        elif args.format.lower() == "md":
+            if args.output:
+                outfile = args.output
+            else:
+                outfile = "output.md"
+            logger.info("Writing Markdown to '" + outfile + "'...")
+            formats.md.write_file(qti_resource, outfile)
 
         elif args.format.lower() == "pdf":
             logger.error("Format not supported yet: " + args.format)

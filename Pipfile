@@ -8,6 +8,8 @@ logzero = "*"
 lxml = "*"
 python-docx = "*"
 htmldocx = "*"
+html2text = "*"
+rich = "*"
 
 [dev-packages]
 
